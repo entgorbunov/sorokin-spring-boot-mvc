@@ -22,10 +22,16 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
-    @ExceptionHandler(ControllerException.class)
-    public ResponseEntity<ErrorMessageResponse> handleControllerException(ControllerException ex) {
+    @ExceptionHandler(EntityNotFoundException.class)
+    public ResponseEntity<ErrorMessageResponse> handleEntityNotFoundException(EntityNotFoundException ex) {
         ErrorMessageResponse errorResponse = new ErrorMessageResponse("Entity Not Found", ex.getMessage());
         return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(InvalidEntityException.class)
+    public ResponseEntity<ErrorMessageResponse> handleInvalidEntityException(InvalidEntityException ex) {
+        ErrorMessageResponse errorResponse = new ErrorMessageResponse("Invalid Entity", ex.getMessage());
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

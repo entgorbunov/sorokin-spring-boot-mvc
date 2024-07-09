@@ -1,74 +1,85 @@
 package sorokin.java.course.service;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import sorokin.java.course.entity.User;
+import sorokin.java.course.exceptions.EntityNotFoundException;
+import sorokin.java.course.exceptions.InvalidEntityException;
 
-import java.util.*;
-@Slf4j
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
+
 @org.springframework.stereotype.Service
-public class UserService implements Service<User, Long> {
+public class UserService {
 
-    private final Map<Long, User> users = new HashMap<>();
+    private static final Logger LOGGER = LoggerFactory.getLogger(UserService.class);
+    private static final Map<Long, User> USER_MAP = new HashMap<>();
+    private static final AtomicLong ID_COUNTER = new AtomicLong(1);
 
 
-    @Override
     public void delete(Long id) {
-        log.info("Deleting user with id = {}", id);
-        users.remove(id);
-    }
-
-    @Override
-    public Optional<User> findById(Long aLong) {
-        log.info("Finding user with id = {}", aLong);
-        return Optional.ofNullable(users.get(aLong));
-    }
-
-    @Override
-    public List<User> findAll() {
-        log.info("Fetching all users");
-        return new ArrayList<>(users.values());
-    }
-
-    @Override
-    public Optional<User> update(User user) {
-        log.info("Updating user with id: {}", user.getId());
-        if (users.containsKey(user.getId())) {
-            validateUser(user);
-            users.put(user.getId(), user);
-            return Optional.of(user);
+        LOGGER.info("Deleting user with id = {}", id);
+        if (!USER_MAP.containsKey(id)) {
+            LOGGER.error("User not found for delete with id: {}", id);
+            throw new EntityNotFoundException("User not found for delete with id: " + id);
         }
-        log.warn("User not found for update, id: {}", user.getId());
-        return Optional.empty();
+        USER_MAP.remove(id);
     }
 
-    @Override
+    public User findById(Long aLong) {
+        LOGGER.info("Finding user with id = {}", aLong);
+        User user = USER_MAP.get(aLong);
+        if (user == null) {
+            LOGGER.error("User not found with id: {}", aLong);
+            throw new EntityNotFoundException("User not found with id: " + aLong);
+        }
+        return user;
+    }
+
+    public List<User> findAll() {
+        LOGGER.info("Fetching all users");
+        return new ArrayList<>(USER_MAP.values());
+    }
+
+    public User update(User user) {
+        LOGGER.info("Updating user with id: {}", user.getId());
+        if (USER_MAP.containsKey(user.getId())) {
+            validateUser(user);
+            USER_MAP.put(user.getId(), user);
+
+        } else {
+            LOGGER.error("User not found for update, id: {}", user.getId());
+            throw new EntityNotFoundException("User not found for update with id" + user.getId());
+        }
+        return user;
+    }
+
     public User create(User user) {
         if (user.getId() == null) {
             user.setId(generateId());
         }
         validateUser(user);
-        log.info("Creating new user with id: {}", user.getId());
-        users.put(user.getId(), user);
+        LOGGER.info("Creating new user with id: {}", user.getId());
+        USER_MAP.put(user.getId(), user);
         return user;
     }
 
     private Long generateId() {
-        return users.keySet()
-                .stream()
-                .max(Long::compare)
-                .orElse(0L) + 1;
+        return ID_COUNTER.getAndIncrement();
     }
 
     private void validateUser(User user) {
         if (user.getName() == null || user.getName().trim().isEmpty()) {
-            throw new IllegalArgumentException("User name cannot be empty");
+            throw new InvalidEntityException("User name cannot be empty");
         }
         if (user.getEmail() == null || !user.getEmail().matches("^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$")) {
-            throw new IllegalArgumentException("Invalid email format");
+            throw new InvalidEntityException("Invalid email format");
         }
         if (user.getAge() == null || user.getAge() < 1 || user.getAge() > 100) {
-            throw new IllegalArgumentException("Invalid age");
+            throw new InvalidEntityException("Invalid age");
         }
     }
 }

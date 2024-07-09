@@ -6,7 +6,7 @@ import sorokin.java.course.dto.UserDto;
 import sorokin.java.course.entity.Pet;
 import sorokin.java.course.entity.User;
 @Service
-public class Mapper {
+public class UserMapper {
 
     public User toEntity(UserDto userDto) {
         return User.builder()
@@ -26,17 +26,5 @@ public class Mapper {
                 .build();
     }
 
-    public Pet toEntity(PetDto petDto) {
-        return Pet.builder()
-                .name(petDto.getName())
-                .userId(petDto.getUserId())
-                .build();
-    }
 
-    public PetDto toDto(Pet pet) {
-        return PetDto.builder()
-                .name(pet.getName())
-                .userId(pet.getUserId())
-                .build();
-    }
 }

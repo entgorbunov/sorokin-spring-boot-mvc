@@ -1,71 +1,81 @@
 package sorokin.java.course.service;
 
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import sorokin.java.course.entity.Pet;
+import sorokin.java.course.exceptions.EntityNotFoundException;
+import sorokin.java.course.exceptions.InvalidEntityException;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
 
-@Slf4j
 @org.springframework.stereotype.Service
-public class PetService implements Service<Pet, Long> {
-    private final Map<Long, Pet> pets = new HashMap<>();
+public class PetService {
+    private static final Logger LOGGER = LoggerFactory.getLogger(PetService.class);
+    private static final Map<Long, Pet> PET_MAP = new HashMap<>();
+    private static final AtomicLong ID_COUNTER = new AtomicLong(1);
 
-    @Override
     public void delete(Long id) {
-        log.info("Deleting pet with id = {}", id);
-        pets.remove(id);
-    }
-
-    @Override
-    public Optional<Pet> findById(Long aLong) {
-        log.info("Finding pet with id = {}", aLong);
-        return Optional.ofNullable(pets.get(aLong));
-    }
-
-    @Override
-    public List<Pet> findAll() {
-        log.info("Fetching all pets");
-        return pets.values().stream().toList();
-    }
-
-    @Override
-    public Optional<Pet> update(Pet pet) {
-        log.info("Updating pet with id: {}", pet.getId());
-        if (pets.containsKey(pet.getId())) {
-            validatePet(pet);
-            pets.put(pet.getId(), pet);
-            return Optional.of(pet);
+        LOGGER.info("Deleting pet with id = {}", id);
+        if (!PET_MAP.containsKey(id)) {
+            LOGGER.error("Pet not found for delete with id: {}", id);
+            throw new EntityNotFoundException("Pet not found for delete with id: " + id);
         }
-        log.warn("Pet not found for update, id: {}", pet.getId());
-        return Optional.empty();
+        PET_MAP.remove(id);
     }
 
-    @Override
+    public Pet findById(Long id) {
+        LOGGER.info("Finding pet with id = {}", id);
+        Pet pet = PET_MAP.get(id);
+        if (pet == null) {
+            LOGGER.error("Pet not found with id: {}", id);
+            throw new EntityNotFoundException("Pet not found with id: " + id);
+        }
+        return pet;
+    }
+
+    public List<Pet> findAll() {
+        LOGGER.info("Fetching all pets");
+        return PET_MAP.values().stream().toList();
+    }
+
+    public Pet update(Pet pet) {
+        LOGGER.info("Updating pet with id: {}", pet.getId());
+        if (PET_MAP.containsKey(pet.getId())) {
+            validatePet(pet);
+            PET_MAP.put(pet.getId(), pet);
+            return pet;
+        }
+        LOGGER.error("Pet not found for update, id: {}", pet.getId());
+        throw new EntityNotFoundException("Pet not found with id: " + pet.getId());
+    }
+
     public Pet create(Pet pet) {
         if (pet.getId() == null) {
             pet.setId(generateId());
         }
         validatePet(pet);
-        log.info("Creating new pet with id: {}", pet.getId());
-        return pets.put(pet.getId(), pet);
+        LOGGER.info("Creating new pet with id: {}", pet.getId());
+        return PET_MAP.put(pet.getId(), pet);
     }
 
+
+
+
     private Long generateId() {
-        return pets.keySet()
-                       .stream()
-                       .max(Long::compare)
-                       .orElse(0L) + 1;
+        return ID_COUNTER.getAndIncrement();
     }
 
     private void validatePet(Pet pet) {
         if (pet.getName() == null || pet.getName().trim().isEmpty()) {
-            throw new IllegalArgumentException("Pet name cannot be empty");
+            throw new InvalidEntityException("Pet name cannot be empty");
         }
         if (pet.getUserId() == null || pet.getUserId() <= 0) {
-            throw new IllegalArgumentException("Invalid user ID");
+            throw new InvalidEntityException("Invalid user ID");
         }
     }
+
+
 }
