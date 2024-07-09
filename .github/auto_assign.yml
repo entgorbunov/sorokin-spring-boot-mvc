@@ -1,0 +1,10 @@
+# Настройки автоматического назначения
+addAssignees: true
+addReviewers: false
+
+# Список пользователей для назначения
+assignees:
+  - sorokinschool
+
+# Количество назначаемых пользователей
+numberOfAssignees: 1
